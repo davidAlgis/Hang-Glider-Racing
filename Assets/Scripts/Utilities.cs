@@ -26,6 +26,16 @@ public class Utilities : MonoBehaviour
     }
 
 
+
+    public static Vector2 rotate(Vector2 vec,  float theta)
+    {
+        //convert degree to radian
+        theta *= (Mathf.PI / 180);
+        Vector2 afterRotation = new Vector2(Mathf.Cos(theta) * vec.x - Mathf.Sin(theta) * vec.y, Mathf.Sin(theta) * vec.x + Mathf.Cos(theta) * vec.y);
+
+        return afterRotation;
+    }
+
 }
 
 

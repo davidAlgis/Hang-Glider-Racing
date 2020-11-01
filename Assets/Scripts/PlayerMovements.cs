@@ -29,9 +29,10 @@ public class PlayerMovements : MonoBehaviour
 
     //Press is Hold
     private bool m_pressIsHold;
+    private bool m_inTransition;
+    private bool m_isRising;
 
-
-    private void Start()
+    private void Awake()
     {
         
         m_rb = GetComponent<Rigidbody>();
@@ -41,6 +42,11 @@ public class PlayerMovements : MonoBehaviour
         m_oldPosition = m_hangGliderGO.transform.position;
         m_oldDiff = Vector3.zero;
         m_pressIsHold = false;
+        m_inTransition = false;
+        m_isRising = false;
+
+        Pair<float, float> lengthSide = angleToLength(m_slopeAngle);
+        m_rb.velocity = m_forceDescentConstant * (transform.forward * lengthSide.first - transform.up * lengthSide.second);
     }
 
 
@@ -59,48 +65,39 @@ public class PlayerMovements : MonoBehaviour
 
         Pair<float, float> lengthSide;
         Vector3 forceDirection;
-        print(m_rb.velocity);
+        //print(m_rb.velocity);
 
-
-        if (Input.GetKey(KeyCode.Space) && m_pressIsHold==false)
+        if(m_inTransition == false)
         {
-            m_rb.Sleep();
-            m_rb.WakeUp();
-            m_posOriginToDive = transform.position;
+            if (Input.GetKey(KeyCode.Space) && m_pressIsHold == false)
+            {
+                lengthSide = angleToLength(m_diveAngle);
+                forceDirection = m_forceDive * (transform.forward * lengthSide.first - transform.up * lengthSide.second);
+                StartCoroutine(transitionBetweenVelocity(m_rb.velocity, forceDirection, 1.0f));
+                m_posOriginToDive = transform.position;
+                m_pressIsHold = true;
+            }
+            else if (Input.GetKey(KeyCode.Space) && m_pressIsHold)
+            {
 
-            lengthSide = angleToLength(m_diveAngle);
-            forceDirection = m_forceDive *(transform.forward * lengthSide.first - transform.up * lengthSide.second);
-            m_rb.AddForce(forceDirection, ForceMode.VelocityChange);
+            }
+            else if (Input.GetKey(KeyCode.Space) == false && m_pressIsHold)
+            {
 
-            m_pressIsHold = true;
+                m_heightDive = Vector3.Distance(m_posOriginToDive, transform.position);
+
+                lengthSide = angleToLength(m_diveAngle);
+                forceDirection = m_forceRise * (transform.forward * lengthSide.first + transform.up * lengthSide.second);
+                StartCoroutine(transitionBetweenVelocity(m_rb.velocity, forceDirection, 1.0f));
+                StartCoroutine(rise(m_heightDive));
+
+                m_pressIsHold = false;
+
+            }
         }
-        else if(Input.GetKey(KeyCode.Space) && m_pressIsHold)
-        {
+        
 
-        }
-        else if(Input.GetKey(KeyCode.Space) == false && m_pressIsHold)
-        {
-            m_heightDive = Vector3.Distance(m_posOriginToDive, transform.position);
-            //m_rb.AddForce(10.0f*transform.forward, ForceMode.VelocityChange);
-            /*m_rb.Sleep();
-            m_rb.WakeUp();*/
-            /*lengthSide = angleToLength(m_diveAngle);
-            forceDirection = m_forceRise * (transform.forward * lengthSide.first + transform.up * lengthSide.second);
-            print(forceDirection);
-            m_rb.AddForce(forceDirection, ForceMode.VelocityChange);*/
-            StartCoroutine(riseCoroutine());
-            m_pressIsHold = false;
-
-        }
-        else
-        {
-            
-
-        }
-
-        lengthSide = angleToLength(m_slopeAngle);
-        forceDirection = m_forceDescentConstant *(transform.forward * lengthSide.first - transform.up * lengthSide.second);
-        m_rb.AddForce(forceDirection);
+        
     }
 
 
@@ -148,5 +145,78 @@ public class PlayerMovements : MonoBehaviour
         m_rb.Sleep();
         m_rb.WakeUp();
 
+    }
+
+
+    //durationTransition in seconds
+    private IEnumerator transitionBetweenVelocity(Vector3 v1, Vector3 v2, float durationTransition)
+    {
+        m_inTransition = true;
+        Vector2 v1Proj = new Vector2(v1.y, v1.z);
+        float v1Norm = v1Proj.magnitude;
+        Vector2 v2Proj = new Vector2(v2.y, v2.z);
+        float v2Norm = v2Proj.magnitude;
+        print("v2Norm " + v2Norm);
+        const float iterationTime = 1 / 30;
+           
+        float rotationOfAngle = Vector2.SignedAngle(v1Proj, v2Proj) / (30.0f * durationTransition);
+
+        for(int i=0; i<30*durationTransition; i++)
+        {
+            
+            v1Proj = Utilities.rotate(v1Proj, rotationOfAngle);
+
+            print(v1Norm);
+            //we update the scale of the vector
+            /*if (v1Norm > v2Norm)
+            {
+                print((v1Norm - Mathf.Abs(v1Norm - v2Norm) * (float)i / (30.0f * durationTransition)));
+                v1Proj.Scale()
+                v1Proj.x = Mathf.Abs(v1Norm - v2Norm) * (float)i / (30.0f * durationTransition);
+                v1Proj.y += Mathf.Abs(v1Norm - v2Norm) * (float)i / (30.0f * durationTransition);
+
+            }
+            else
+            {
+                print((v1Norm + Mathf.Abs(v1Norm - v2Norm) * (float)i / (30.0f * durationTransition)));
+                v1Proj.x -= Mathf.Abs(v1Norm - v2Norm) * (float)i / (30.0f * durationTransition);
+                v1Proj.y -= Mathf.Abs(v1Norm - v2Norm) * (float)i / (30.0f * durationTransition);
+            }*/
+            if(v1Norm < v2Norm)
+            {
+
+                if (v1Proj.magnitude < v2Norm)
+                    v1Proj *= 1.1f;
+                else
+                    print("obtained the speed");
+            }
+            else
+            {
+                if (v1Proj.magnitude > v2Norm)
+                    v1Proj *= 0.9f;
+                else
+                    print("obtained the speed");
+            }
+
+            m_rb.velocity = new Vector3(0.0f, v1Proj.x, v1Proj.y);
+            yield return new WaitForSeconds(iterationTime);
+        }
+
+        m_inTransition = false;
+
+    }
+
+    private IEnumerator rise(float heightDive)
+    {
+        m_isRising = true;
+        Vector3 posOriginRise = transform.position;
+        while (Vector3.Distance(posOriginRise, transform.position) < 2*heightDive)
+        {
+            yield return new WaitForFixedUpdate();
+        }
+        Pair<float, float> lengthSide = angleToLength(m_slopeAngle);
+        Vector3 direction = m_forceDescentConstant * (transform.forward * lengthSide.first - transform.up * lengthSide.second);
+        StartCoroutine(transitionBetweenVelocity(m_rb.velocity, direction, 5.0f));
+        m_isRising = false;
     }
 }

@@ -363,7 +363,7 @@ PrefabInstance:
     - target: {fileID: 3031354282387239588, guid: 9f31dff323ef10142835c8753f88890d,
         type: 3}
       propertyPath: m_riseAngle
-      value: 80
+      value: -90
       objectReference: {fileID: 0}
     - target: {fileID: 3031354282387239588, guid: 9f31dff323ef10142835c8753f88890d,
         type: 3}
@@ -373,7 +373,7 @@ PrefabInstance:
     - target: {fileID: 3031354282387239588, guid: 9f31dff323ef10142835c8753f88890d,
         type: 3}
       propertyPath: m_forceDescentConstant
-      value: 2
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 3031354282387239594, guid: 9f31dff323ef10142835c8753f88890d,
         type: 3}
