@@ -55,7 +55,6 @@ public class ShakeBehavior : MonoBehaviour
             m_transform.localPosition = m_initialPosition + Random.insideUnitSphere * 0.01f;
             m_shakeDuration = 0f;
             m_shakeBegin = 0f;
-            //m_transform.localPosition = m_initialPosition;
         }
     }
 

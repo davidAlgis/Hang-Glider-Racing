@@ -9,20 +9,24 @@ public class PlayerMovements : MonoBehaviour
     [SerializeField]
     private float m_slopeAngle;
     [SerializeField]
-    private float m_forceDescentConstant;
+    private float m_forceDescent;
+    private float m_forceDescentInit;
     [SerializeField]
     private float m_diveAngle;
     [SerializeField]
     private float m_forceDive;
+    private float m_forceDiveInit;
     [SerializeField]
     private float m_riseAngle;
     [SerializeField]
     private float m_forceRise;
+    private float m_forceRiseInit;
     private Vector3 m_posOriginToDive;
 
     private bool m_pressIsHold;
     private bool m_inTransition;
     private bool m_isRising;
+    private bool m_isWaitingForDiving;
 
     //to rotate the mesh
     [SerializeField]
@@ -33,13 +37,21 @@ public class PlayerMovements : MonoBehaviour
     //visual effect
     private ShakeBehavior m_shakeBehaviorCamera;
     private ParticleSystem m_particleTrails;
-    
 
+    [SerializeField]
+    private bool m_handleByAI;
+
+    [SerializeField]
+    private int m_randomSeed;
 
     private void Awake()
     {
-        m_shakeBehaviorCamera = transform.Find("Main Camera").GetComponent<ShakeBehavior>();
-        m_particleTrails = m_hangGliderGO.transform.Find("ParticleTrails").GetComponent<ParticleSystem>();
+        if(m_handleByAI == false)
+        {
+
+            m_shakeBehaviorCamera = transform.Find("Main Camera").GetComponent<ShakeBehavior>();
+            m_particleTrails = m_hangGliderGO.transform.Find("ParticleTrails").GetComponent<ParticleSystem>();
+        }
 
         m_rb = GetComponent<Rigidbody>();
         //Convert the angle from degrees to radian (The degrees are easier to visualize)
@@ -47,120 +59,159 @@ public class PlayerMovements : MonoBehaviour
         m_diveAngle = (m_diveAngle * Mathf.PI) / 180.0f;
         m_riseAngle = (m_riseAngle * Mathf.PI) / 180.0f;
 
+        m_forceDescentInit = m_forceDescent;
+        m_forceDiveInit = m_forceDive;
+        m_forceRiseInit = m_forceRise;
+
         m_oldPosition = m_hangGliderGO.transform.position;
         m_oldDiff = Vector3.zero;
         m_pressIsHold = false;
         m_inTransition = false;
+        m_isWaitingForDiving = false;
 
         Pair<float, float> lengthSide = angleToLength(m_slopeAngle);
-        m_rb.velocity = m_forceDescentConstant * (transform.forward * lengthSide.first - transform.up * lengthSide.second);
+        m_rb.velocity = m_forceDescent * (transform.forward * lengthSide.first - transform.up * lengthSide.second);
+
+        if(m_handleByAI)
+            Random.InitState(m_randomSeed);
     }
 
 
     private void Update()
     {
-        //Utilities.instantiateSphereAtPosition(transform.position);
-        //rotate the hand glider to make it look where it goes.
-        Vector3 diff = m_hangGliderGO.transform.position - m_oldPosition;
 
-        //only use lookAt when he changes his direction
-        if (Utilities.isCloseEpsilonVec3(diff, m_oldDiff, 0.01f) == false)
-            m_hangGliderGO.transform.LookAt(m_hangGliderGO.transform.position + diff);
-        
-        m_oldPosition = m_hangGliderGO.transform.position;
-        m_oldDiff = diff;
+        updateRotationHangGlider();
 
-        Pair<float, float> lengthSide;
-        Vector3 forceDirection;
+
+        if(m_handleByAI)
+        {
+            if (m_pressIsHold == false && m_isWaitingForDiving == false)
+                StartCoroutine(waitAndDive());
+
+            return;
+        }
+
+
 
 #if UNITY_EDITOR
         if (m_inTransition == false)
         {
             //hold button
             if (Input.GetKey(KeyCode.Space) && m_pressIsHold == false)
-            {
-                lengthSide = angleToLength(m_diveAngle);
-                forceDirection = m_forceDive * (transform.forward * lengthSide.first - transform.up * lengthSide.second);
-                StartCoroutine(transitionBetweenVelocity(m_rb.velocity, forceDirection, 1.0f));
-                m_posOriginToDive = transform.position;
-
-
-                m_pressIsHold = true;
-
-                //visual effect
-                //m_particleTrails.Play();
-                StartCoroutine(increaseWindEffect());
-                StartCoroutine(shakeCamera());
-            }
+                holdToDive();
+            
 
             //release button
             if (Input.GetKey(KeyCode.Space) == false && m_pressIsHold)
-            {
-                m_isRising = true;
-                lengthSide = angleToLength(m_diveAngle);
-                forceDirection = m_forceRise * (transform.forward * lengthSide.first + transform.up * lengthSide.second);
-                StartCoroutine(transitionBetweenVelocity(m_rb.velocity, forceDirection, 0.5f));
+                releaseToRise();
+            
 
-                StartCoroutine(rise(Vector3.Distance(m_posOriginToDive, transform.position)));
-
-                m_pressIsHold = false;
-
-            }
         }
 #endif
+
 
         if (m_inTransition == false && Input.touchCount > 0)
         {
             Touch touch = Input.GetTouch(0);
             //hold button
             if ((Input.GetKey(KeyCode.Space) && m_pressIsHold == false) || (touch.phase == TouchPhase.Began && m_pressIsHold == false))
-            {
-                lengthSide = angleToLength(m_diveAngle);
-                forceDirection = m_forceDive * (transform.forward * lengthSide.first - transform.up * lengthSide.second);
-                StartCoroutine(transitionBetweenVelocity(m_rb.velocity, forceDirection, 1.0f));
-                m_posOriginToDive = transform.position;
+                holdToDive();
 
-                
-                m_pressIsHold = true;
-
-                //visual effect
-                //m_particleTrails.Play();
-                StartCoroutine(increaseWindEffect());
-                StartCoroutine(shakeCamera());
-            }
 
             //release button
             if ((Input.GetKey(KeyCode.Space) == false && m_pressIsHold) || (touch.phase == TouchPhase.Ended && m_pressIsHold == false))
-            {
-                m_isRising = true;
-                lengthSide = angleToLength(m_diveAngle);
-                forceDirection = m_forceRise * (transform.forward * lengthSide.first + transform.up * lengthSide.second);
-                StartCoroutine(transitionBetweenVelocity(m_rb.velocity, forceDirection, 0.5f));
-
-                StartCoroutine(rise(Vector3.Distance(m_posOriginToDive, transform.position)));
-
-                m_pressIsHold = false;
-
-            }
+                releaseToRise();
         }
-        
 
-        
+        var main = m_particleTrails.main;
+        main.startSpeed = m_forceDescent / 10.0f;
+    }
+    
+    private void holdToDive()
+    {
+
+        Pair<float, float> lengthSide;
+        Vector3 forceDirection;
+
+        lengthSide = angleToLength(m_diveAngle);
+        forceDirection = m_forceDive * (transform.forward * lengthSide.first - transform.up * lengthSide.second);
+        StartCoroutine(transitionBetweenVelocity(m_rb.velocity, forceDirection, 1.0f));
+        m_posOriginToDive = transform.position;
+        m_pressIsHold = true;
+
+        //visual effect
+        if (m_handleByAI == false)
+            StartCoroutine(shakeCamera());
+        else
+            StartCoroutine(waitAndRelease());
     }
 
+    private void releaseToRise()
+    {
+        Pair<float, float> lengthSide;
+        Vector3 forceDirection;
 
+        m_isRising = true;
+        lengthSide = angleToLength(m_diveAngle);
+        forceDirection = m_forceRise * (transform.forward * lengthSide.first + transform.up * lengthSide.second);
+        StartCoroutine(transitionBetweenVelocity(m_rb.velocity, forceDirection, 0.5f));
+        float height = Vector3.Distance(m_posOriginToDive, transform.position);
+        StartCoroutine(rise(height));
+
+        changeForces(1.0f + 0.01f*height);
+
+        m_pressIsHold = false;
+    }
+
+    public void changeForces(float factor)
+    {
+
+        if (m_forceDescent * factor > 200.0f)
+            m_forceDescent = 200.0f;
+        else if (m_forceDive * factor < m_forceDescentInit)
+            m_forceDescent = m_forceDescentInit;
+        else
+            m_forceDescent *= factor;
+
+        if (m_forceDive * factor > 200.0f)
+            m_forceDive = 200.0f;
+        else if (m_forceDive * factor < m_forceDiveInit)
+            m_forceDive = m_forceDiveInit;
+        else
+            m_forceDive *= factor;
+
+        if (m_forceRise * factor > 200.0f)
+            m_forceRise = 200.0f;
+        else if (m_forceRise * factor < m_forceRiseInit)
+            m_forceRise = m_forceRiseInit;
+        else
+            m_forceRise *= factor;
+    }
+
+    private void updateRotationHangGlider()
+    {
+        //rotate the hand glider to make it look where it goes.
+        Vector3 diff = m_hangGliderGO.transform.position - m_oldPosition;
+
+        //only use lookAt when he changes his direction
+        if (Utilities.isCloseEpsilonVec3(diff, m_oldDiff, 0.01f) == false)
+            m_hangGliderGO.transform.LookAt(m_hangGliderGO.transform.position + diff);
+
+        m_oldPosition = m_hangGliderGO.transform.position;
+        m_oldDiff = diff;
+    }
 
     //convert an angle in a normalized length for adjacent and opposite side of a triangle
     private Pair<float,float> angleToLength(float angle)
     {
-        /*    a
-         * -------
-         * \|t   |
-         *  \    | 
-         * 1 \   | b
-         *    \  |
-         *     \ |
-         *      \|
+        /*     a
+         *  -------
+         *  \|t   |
+         *   \    | 
+         *  1 \   | b
+         *     \  |
+         *      \ |
+         *       \|
          *  with the angle 1 return (b, a)
          */
 
@@ -217,15 +268,15 @@ public class PlayerMovements : MonoBehaviour
     {
 
         Vector3 posOriginRise = transform.position;
-        while (Vector3.Distance(posOriginRise, transform.position) < (3.0f/2.0f)*heightDive)
+        while (Vector3.Distance(posOriginRise, transform.position) < 1.1f*heightDive)
         {
             yield return new WaitForFixedUpdate();
         }
+
         Pair<float, float> lengthSide = angleToLength(m_slopeAngle);
-        Vector3 direction = m_forceDescentConstant * (transform.forward * lengthSide.first - transform.up * lengthSide.second);
+        Vector3 direction =  m_forceDescent * (transform.forward * lengthSide.first - transform.up * lengthSide.second);
         StartCoroutine(transitionBetweenVelocity(m_rb.velocity, direction, 1.0f));
         m_isRising = false;
-        //m_particleTrails.Stop();
     }
 
     private IEnumerator shakeCamera()
@@ -236,25 +287,29 @@ public class PlayerMovements : MonoBehaviour
         while(m_pressIsHold)
         {
             m_shakeBehaviorCamera.TriggerShake(durationShake, magnitudeShake);
-            magnitudeShake += 0.01f;
+            magnitudeShake += (0.0001f * m_forceDive);
             yield return new WaitForSeconds(durationShake);
         }
     }
 
-    private IEnumerator increaseWindEffect()
+    private IEnumerator waitAndRelease()
     {
-        var main = m_particleTrails.main;
-        float initValue = main.startSpeed.constant;
-        float incrementValue = 0.0f;
-
-        while (m_pressIsHold || m_isRising)
-        {
-            main.startSpeed = initValue + incrementValue;
+        while (m_inTransition)
             yield return new WaitForSeconds(0.1f);
 
-            incrementValue+=1.0f;
-        }
-
-        main.startSpeed = initValue;
+        Random.InitState(m_randomSeed);
+        yield return new WaitForSeconds(Random.Range(0.5f, 3.0f));
+        releaseToRise();
     }
+
+    private IEnumerator waitAndDive()
+    {
+        m_isWaitingForDiving = true;
+        Random.InitState(m_randomSeed);
+        yield return new WaitForSeconds(Random.Range(2.0f, 4.0f));
+        holdToDive();
+
+        m_isWaitingForDiving = false;
+    }
+
 }
