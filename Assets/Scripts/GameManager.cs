@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.SceneManagement;
 using UnityEngine;
 
 public class GameManager : MonoBehaviour
@@ -50,4 +51,19 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    public float calculateScore()
+    {
+        return m_hangGliderPlayer.transform.parent.transform.position.z;
+    }
+
+    public float calculateScore(Vector3 pos)
+    {
+        print("good job you have : " + (pos.z - 25.0f));
+        return pos.z - 25.0f;
+    }
+
+    public void restartLevel()
+    {
+        SceneManager.LoadScene(0);
+    }
 }

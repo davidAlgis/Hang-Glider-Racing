@@ -33,6 +33,19 @@ Transform:
   m_Father: {fileID: 2613170313556779653}
   m_RootOrder: 4
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &1739553599181999042
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1303934302696968342}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 1
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Size: {x: 1.2700253, y: 0.7233219, z: 1.6770058}
+  m_Center: {x: -0.13501263, y: 0.4832945, z: 0.33850288}
 --- !u!1 &1766492268290142627
 GameObject:
   m_ObjectHideFlags: 0
@@ -5074,14 +5087,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3b784e8a1f5cc284983f05650c82a147, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_slopeAngle: 30
-  m_forceDescent: 2.5
+  m_slopeAngle: 20
+  m_forceDescent: 5
+  m_forceDescentMax: 70
   m_diveAngle: 85
-  m_forceDive: 7
+  m_forceDive: 15
+  m_forceDiveMax: 100
   m_riseAngle: -88
-  m_forceRise: 15
+  m_forceRise: 20
+  m_forceRiseMax: 150
   m_hangGliderGO: {fileID: 1303934302696968342}
   m_handleByAI: 0
+  m_randomSeed: 0
 --- !u!1 &6822155895784038139
 GameObject:
   m_ObjectHideFlags: 0

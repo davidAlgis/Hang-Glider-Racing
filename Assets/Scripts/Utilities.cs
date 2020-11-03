@@ -17,6 +17,7 @@ public class Utilities : MonoBehaviour
         //Sphere.transform.localScale /= 2;
     }
 
+    //check if two vector3 are almost equal
     public static bool isCloseEpsilonVec3(Vector3 x, Vector3 y, float epsilon = 0.5f)
     {
         if (Vector3.Distance(x, y) < epsilon)
@@ -26,7 +27,7 @@ public class Utilities : MonoBehaviour
     }
 
 
-
+    //rotate vec with a angle theta
     public static Vector2 rotate(Vector2 vec,  float theta)
     {
         //convert degree to radian
@@ -38,7 +39,7 @@ public class Utilities : MonoBehaviour
 
 }
 
-
+//a usefull and simple container which only have two elements
 [System.Serializable]
 public class Pair<T, U>
 {
