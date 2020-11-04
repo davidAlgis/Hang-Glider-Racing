@@ -5090,10 +5090,10 @@ MonoBehaviour:
   m_slopeAngle: 20
   m_forceDescent: 5
   m_forceDescentMax: 70
-  m_diveAngle: 85
+  m_diveAngle: 80
   m_forceDive: 15
   m_forceDiveMax: 100
-  m_riseAngle: -88
+  m_riseAngle: -80
   m_forceRise: 20
   m_forceRiseMax: 150
   m_hangGliderGO: {fileID: 1303934302696968342}

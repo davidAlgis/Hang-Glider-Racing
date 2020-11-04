@@ -32,11 +32,9 @@ public class BoostAndReduce : MonoBehaviour
             {
                 case TypeBoostAndReduce.speedBoost:
                     playerMovements.changeForces(m_boostSpeed);
-                    Destroy(gameObject);
                     break;
                 case TypeBoostAndReduce.riseBoost:
                     playerMovements.riseBoost(m_heightToRise);
-                    //Destroy(this);
                     break;
                 case TypeBoostAndReduce.speedReduce:
                     playerMovements.changeForces(m_factorSpeedReduce);

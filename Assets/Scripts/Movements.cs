@@ -49,20 +49,31 @@ public class Movements : MonoBehaviour
     private ShakeBehavior m_shakeBehaviorCamera;
     private ParticleSystem m_particleTrails;
 
+    //configuration for AI
     [SerializeField]
     private bool m_handleByAI;
-
+    private Color m_associatedColor;
     [SerializeField]
     private int m_randomSeed;
+    [SerializeField]
+    private string m_name;
 
-    private void Awake()
+    public GameObject HangGliderGO { get => m_hangGliderGO; set => m_hangGliderGO = value; }
+    public string Name { get => m_name; }
+    public bool IsLanded { get => m_isLanded; }
+
+    private void OnEnable()
     {
         if(m_handleByAI == false)
         {
 
             m_shakeBehaviorCamera = transform.Find("Main Camera").GetComponent<ShakeBehavior>();
             m_particleTrails = m_hangGliderGO.transform.Find("ParticleTrails").GetComponent<ParticleSystem>();
+            SoundManager.Instance.playSoundFlight();
+            m_name = "You";
         }
+
+
 
         m_rb = GetComponent<Rigidbody>();
 
@@ -91,6 +102,10 @@ public class Movements : MonoBehaviour
             Random.InitState(m_randomSeed);
             m_forceDescent *= 5.0f;
             StartCoroutine(catchUpPlayer());
+            //change the color of the wing and the character
+            m_associatedColor = new Color(Random.Range(0.0f, 1.0f), Random.Range(0.0f, 1.0f), Random.Range(0.0f, 1.0f));
+            m_hangGliderGO.transform.Find("Bar").GetComponent<MeshRenderer>().material.color = m_associatedColor;
+            m_hangGliderGO.transform.Find("Character/Stickman_heads_sphere.014").GetComponent<SkinnedMeshRenderer>().material.color = m_associatedColor; 
         }
 
         m_rb.velocity = m_forceDescent * (transform.forward * lengthSide.first - transform.up * lengthSide.second);
@@ -98,14 +113,13 @@ public class Movements : MonoBehaviour
             
     }
 
-
     private void Update()
     {
 
         updateRotationHangGlider();
 
         //If the hangGlider reachTheFloor
-        if(m_hangGliderGO.transform.position.y <= 2.0f || (m_isLanded && m_hangGliderGO.transform.position.y <= 2.0f))
+        if(m_hangGliderGO.transform.position.y <= 2.0f || (m_isLanded && m_hangGliderGO.transform.position.y <= 3.0f))
         {
             landOnFloor();
             return;
@@ -160,8 +174,6 @@ public class Movements : MonoBehaviour
             Touch touch = Input.GetTouch(0);
             if (touch.phase == TouchPhase.Ended && m_pressIsHold)
             {
-
-                UIManager.Instance.debugText("release on transition");
                 StartCoroutine(releaseAtTheEndOfTransition());
             }
         }
@@ -171,18 +183,29 @@ public class Movements : MonoBehaviour
 
         if (m_pressIsHold)
         {
-            float gaugeAmount = 0.01f * (m_posOriginToDive.y - transform.position.y);
+            float gaugeAmount = Mathf.Min((m_posOriginToDive.y - transform.position.y) / UIManager.Instance.MeasureFullGauge, 1.0f);;
             UIManager.Instance.setGauge(gaugeAmount);
         }
 
     }
-    
+
+
+    private void LateUpdate()
+    {
+        if (GameManager.Instance.HangGliderPlayer.transform.position.y <= 10.0f)
+        {
+            Vector3 newPos = new Vector3(GameManager.Instance.MainCameraGO.transform.position.x, 10.0f, GameManager.Instance.MainCameraGO.transform.position.z);
+            GameManager.Instance.MainCameraGO.transform.position = newPos;
+        }
+    }
+
     private void holdToDive()
     {
-        if (m_handleByAI == false)
-            UIManager.Instance.debugText("hold");
         if(m_handleByAI == false)
+        {
             UIManager.Instance.setGauge(0.0f);
+            SoundManager.Instance.playSoundDive();
+        }
 
         Pair<float, float> lengthSide;
         Vector3 forceDirection;
@@ -203,10 +226,10 @@ public class Movements : MonoBehaviour
 
     private void landOnFloor()
     {
-        print("land on floor");
         Vector3 currentPosHangGlider = m_hangGliderGO.transform.position;
-        if (currentPosHangGlider.y <= 2.0f)
-            m_hangGliderGO.transform.position = Vector3.MoveTowards(currentPosHangGlider, new Vector3(currentPosHangGlider.x, 2.0f, currentPosHangGlider.z), 0.5f);
+
+        if (currentPosHangGlider.y <= 2.5f)
+            m_hangGliderGO.transform.position = Vector3.MoveTowards(currentPosHangGlider, new Vector3(currentPosHangGlider.x, 3.0f, currentPosHangGlider.z), 0.5f);
 
         if (m_isLanded == false)
         {
@@ -215,7 +238,9 @@ public class Movements : MonoBehaviour
             StartCoroutine(landOnFloorCoroutine());
         }
 
+        SoundManager.Instance.stopSoundFlight();
         m_isLanded = true;
+
     }
 
     private IEnumerator landOnFloorCoroutine()
@@ -224,10 +249,18 @@ public class Movements : MonoBehaviour
         yield return new WaitForSeconds(1.5f);
         StartCoroutine(transitionBetweenVelocity(m_rb.velocity, Vector3.zero, 2.5f));
 
-        if(m_handleByAI == false)
-            UIManager.Instance.plotPanelEndGo();
+        GameManager.Instance.calculateScoreForLandedHangGlider(gameObject);
+
+        if (m_handleByAI == false)
+        {
+            GameManager.Instance.endLevel();
+        }
     }
 
+
+    /*The opponent start with a slightly drawback to let the player 
+      recognize his hangglider. Therefore they have to catch up the 
+      player.*/
     private IEnumerator catchUpPlayer()
     {
         while(m_hangGliderGO.transform.position.z < GameManager.Instance.HangGliderPlayer.transform.position.z)
@@ -242,7 +275,9 @@ public class Movements : MonoBehaviour
     private void releaseToRise()
     {
         if(m_handleByAI == false)
-            UIManager.Instance.debugText("release");
+            SoundManager.Instance.stopSoundDiveAndPlaySoundRise();
+        
+
         Pair<float, float> lengthSide;
         Vector3 forceDirection;
 
@@ -264,6 +299,10 @@ public class Movements : MonoBehaviour
     {
         m_isRisingBoostOrDiveReduce = true;
         myStopAllCoroutine();
+
+        /*if (m_handleByAI == false)
+            SoundManager.Instance.stopSoundDiveAndPlaySoundRise();*/
+
         Pair<float, float> lengthSide;
         Vector3 forceDirection;
 
@@ -421,7 +460,7 @@ public class Movements : MonoBehaviour
             if(m_handleByAI == false)
             {
 
-                float gaugeAmount = 0.01f * (m_posOriginToDive.y - transform.position.y);
+                float gaugeAmount = Mathf.Max((m_posOriginToDive.y - transform.position.y)/ UIManager.Instance.MeasureFullGauge,0.0f);
                 UIManager.Instance.setGauge(gaugeAmount);
             }
             yield return new WaitForFixedUpdate();
@@ -431,6 +470,12 @@ public class Movements : MonoBehaviour
         Pair<float, float> lengthSide = angleToLength(m_slopeAngle);
         Vector3 direction =  m_forceDescent * (transform.forward * lengthSide.first - transform.up * lengthSide.second);
         StartCoroutine(transitionBetweenVelocity(m_rb.velocity, direction, 1.0f));
+
+        if(m_handleByAI == false)
+        {
+            SoundManager.Instance.stopSoundRise();
+        }
+
         if (isRisingWithBoost)
             m_isRisingBoostOrDiveReduce = false;
     }
@@ -443,7 +488,7 @@ public class Movements : MonoBehaviour
         while(m_pressIsHold)
         {
             m_shakeBehaviorCamera.TriggerShake(durationShake, magnitudeShake);
-            magnitudeShake += (0.0001f * m_forceDive);
+            magnitudeShake += (0.001f * m_forceDive);
             yield return new WaitForSeconds(durationShake);
         }
     }
@@ -477,6 +522,10 @@ public class Movements : MonoBehaviour
     public void myStopAllCoroutine()
     {
         UIManager.Instance.setGauge(0.0f);
+
+        if (m_handleByAI == false)
+            SoundManager.Instance.stopAllAudioSources();
+        
         StopAllCoroutines();
     }
 
