@@ -119,7 +119,7 @@ public class Movements : MonoBehaviour
         updateRotationHangGlider();
 
         //If the hangGlider reachTheFloor
-        if(m_hangGliderGO.transform.position.y <= 2.0f || (m_isLanded && m_hangGliderGO.transform.position.y <= 3.0f))
+        if(m_hangGliderGO.transform.position.y <= 2.0f || m_isLanded)
         {
             landOnFloor();
             return;
@@ -190,15 +190,6 @@ public class Movements : MonoBehaviour
     }
 
 
-    private void LateUpdate()
-    {
-        if (GameManager.Instance.HangGliderPlayer.transform.position.y <= 10.0f)
-        {
-            Vector3 newPos = new Vector3(GameManager.Instance.MainCameraGO.transform.position.x, 10.0f, GameManager.Instance.MainCameraGO.transform.position.z);
-            GameManager.Instance.MainCameraGO.transform.position = newPos;
-        }
-    }
-
     private void holdToDive()
     {
         if(m_handleByAI == false)
@@ -224,29 +215,32 @@ public class Movements : MonoBehaviour
 
     }
 
-    private void landOnFloor()
+    public void landOnFloor()
     {
         Vector3 currentPosHangGlider = m_hangGliderGO.transform.position;
 
         if (currentPosHangGlider.y <= 2.5f)
-            m_hangGliderGO.transform.position = Vector3.MoveTowards(currentPosHangGlider, new Vector3(currentPosHangGlider.x, 3.0f, currentPosHangGlider.z), 0.5f);
+            m_hangGliderGO.transform.position = Vector3.MoveTowards(currentPosHangGlider, new Vector3(currentPosHangGlider.x, 3.0f, currentPosHangGlider.z), 1.0f);
 
         if (m_isLanded == false)
         {
-
             myStopAllCoroutine();
             StartCoroutine(landOnFloorCoroutine());
         }
+        
+        if(m_handleByAI == false)
+            SoundManager.Instance.stopSoundFlight();
 
-        SoundManager.Instance.stopSoundFlight();
         m_isLanded = true;
 
     }
 
     private IEnumerator landOnFloorCoroutine()
     {
+
+        StartCoroutine(transitionBetweenVelocity(m_rb.velocity, Vector3.zero, 0.01f));
+        yield return new WaitForSeconds(0.01f);
         StartCoroutine(transitionBetweenVelocity(m_rb.velocity, transform.forward, 0.5f));
-        yield return new WaitForSeconds(1.5f);
         StartCoroutine(transitionBetweenVelocity(m_rb.velocity, Vector3.zero, 2.5f));
 
         GameManager.Instance.calculateScoreForLandedHangGlider(gameObject);
@@ -460,7 +454,7 @@ public class Movements : MonoBehaviour
             if(m_handleByAI == false)
             {
 
-                float gaugeAmount = Mathf.Max((m_posOriginToDive.y - transform.position.y)/ UIManager.Instance.MeasureFullGauge,0.0f);
+                float gaugeAmount = Mathf.Max((m_posOriginToDive.y - transform.position.y)/ UIManager.Instance.MeasureFullGauge, 0.0f);
                 UIManager.Instance.setGauge(gaugeAmount);
             }
             yield return new WaitForFixedUpdate();
@@ -488,7 +482,7 @@ public class Movements : MonoBehaviour
         while(m_pressIsHold)
         {
             m_shakeBehaviorCamera.TriggerShake(durationShake, magnitudeShake);
-            magnitudeShake += (0.001f * m_forceDive);
+            magnitudeShake += (0.0005f * m_forceDive);
             yield return new WaitForSeconds(durationShake);
         }
     }

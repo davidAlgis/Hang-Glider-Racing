@@ -8,7 +8,8 @@ public class Goal : MonoBehaviour
     {
         if(other.tag == "Player")
         {
-            print("SUCESS");
+            other.transform.parent.gameObject.SetActive(true);
+            GameManager.Instance.endLevel();
         }
     }
 }

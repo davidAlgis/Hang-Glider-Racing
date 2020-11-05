@@ -2,9 +2,12 @@
 using System.Collections.Generic;
 using UnityEngine.SceneManagement;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class GameManager : MonoBehaviour
 {
+    [SerializeField]
+    private int m_levelId;
     private static GameManager m_instance;
     [SerializeField]
     private GameObject m_hangGliderPlayer;
@@ -13,7 +16,15 @@ public class GameManager : MonoBehaviour
     [SerializeField]
     private GameObject m_playersGO;
     private List<Pair<Movements,float>> m_movementsPlayers = new List<Pair<Movements, float>>();
-
+    
+    #region Objectives_variables
+    [SerializeField]
+    private Objective[] m_objective = new Objective[3];
+    private float m_highestDive = 0.0f;
+    private int m_nbrOfCoinLevel = 0;
+    private uint m_rankPlayer;
+    private float m_distanceTraveledPlayer;
+    #endregion
 
     public static GameManager Instance
     {
@@ -30,6 +41,9 @@ public class GameManager : MonoBehaviour
     public GameObject HangGliderPlayer { get => m_hangGliderPlayer; }
     public List<Pair<Movements, float>> MovementsPlayers { get => m_movementsPlayers;}
     public GameObject MainCameraGO { get => m_mainCameraGO; }
+    public int NbrOfCoinLevel { get => m_nbrOfCoinLevel; set => m_nbrOfCoinLevel = value; }
+    public Objective[] Objective { get => m_objective; set => m_objective = value; }
+    public int LevelId { get => m_levelId; }
 
     public void Awake()
     {
@@ -38,6 +52,19 @@ public class GameManager : MonoBehaviour
         {
             Movements mov = m_playersGO.transform.GetChild(i).GetComponent<Movements>();
             m_movementsPlayers.Add(new Pair<Movements, float>(mov, 0.0f));
+        }
+
+        //found the objectives which are binded with this level
+        List<Objectives3Achieve> currentObjectives = DataManager.Instance.ObjectivesAreAchieve;
+        foreach (var objectives3Achieve in currentObjectives)
+        {
+            if(objectives3Achieve.levelAssociated == m_levelId)
+            {
+                m_objective[0].isAchieve = objectives3Achieve.objective1isAchieve;
+                m_objective[1].isAchieve = objectives3Achieve.objective2isAchieve;
+                m_objective[2].isAchieve = objectives3Achieve.objective3isAchieve;
+                break;
+            }
         }
     }
 
@@ -50,6 +77,9 @@ public class GameManager : MonoBehaviour
     {
         definedScore();
         sortPlayerByScore();
+
+        //The check has to be after the 2 lasts line, because they updates scores.
+        checkIfObjectivesAreCompleted();
         UIManager.Instance.plotPanelEndGo();
     }
 
@@ -67,11 +97,14 @@ public class GameManager : MonoBehaviour
                 {
                     player.second = player.first.HangGliderGO.transform.position.z;
                 }
+
+                if(go.tag == "Player")
+                    m_distanceTraveledPlayer = player.first.HangGliderGO.transform.position.z;
             }
         }
     }
 
-    public void sortPlayerByScore()
+    private void sortPlayerByScore()
     {
         m_movementsPlayers.Sort(
             delegate (Pair<Movements, float> p1, Pair<Movements, float> p2)
@@ -79,9 +112,20 @@ public class GameManager : MonoBehaviour
                 return p1.second > p2.second ? -1 : 1;
             }
         );
+
+        uint index = 1;
+        foreach(var player in m_movementsPlayers)
+        {
+            if (player.first.gameObject.tag == "Player")
+            {
+                m_rankPlayer = index;
+            }
+
+            index++;
+        }
     }
 
-    public void definedScore()
+    private void definedScore()
     {
         if (m_movementsPlayers != null)
         {
@@ -98,7 +142,19 @@ public class GameManager : MonoBehaviour
 
     public void restartLevel()
     {
-        SceneManager.LoadScene(0);
+        SceneManager.LoadScene(m_levelId);
+    }
+
+    public void goToMainMenu()
+    {
+
+        SceneManager.LoadScene(1);
+    }
+
+    public void goToNextLevel()
+    {
+        //add a check here
+        SceneManager.LoadScene(m_levelId++);
     }
 
     public void launchPlayers()
@@ -111,4 +167,78 @@ public class GameManager : MonoBehaviour
             }
         }
     }
+
+    public void highestDive(float heightDive)
+    {
+        if (heightDive > m_highestDive)
+            m_highestDive = heightDive;
+    }
+
+    #region Objectives
+
+    public void checkIfObjectivesAreCompleted()
+    {
+        foreach (Objective objective in m_objective)
+        {
+            if (objective.isAchieve == false)
+            {
+                if (objective.condition.Invoke())
+                {
+                    objective.isAchieve = true;
+                }
+                DataManager.Instance.NbrOfStar++;
+            }
+        }
+
+        List<Objectives3Achieve> currentObjectives = DataManager.Instance.ObjectivesAreAchieve;
+        foreach (var objectives3Achieve in currentObjectives)
+        {
+            if (objectives3Achieve.levelAssociated == m_levelId)
+            {
+                objectives3Achieve.objective1isAchieve = m_objective[0].isAchieve;
+                objectives3Achieve.objective1isAchieve = m_objective[1].isAchieve;
+                objectives3Achieve.objective1isAchieve = m_objective[2].isAchieve;
+                break;
+            }
+        }
+    }
+
+    public bool hasEarnedMoreCoinsThan(int x)
+    {
+        return m_nbrOfCoinLevel >= x;
+    }
+
+    public bool hasTravelledMoreThan(float distance)
+    {
+        return distance < m_distanceTraveledPlayer;
+    }
+
+    public bool isRankedGreaterThan(int x)
+    {
+        return m_rankPlayer <= x;
+    }
+
+    public bool isHighestDiveGreaterThan(float height)
+    {
+        return m_highestDive >= height;
+    }
+
+    #endregion
+
+}
+
+[System.Serializable]
+public class Objective
+{
+    public Condition condition;
+    public string associatedText;
+    public bool isAchieve;
+}
+
+
+[System.Serializable]
+public class Objectives3
+{
+    public Objective[] objectives = new Objective[3];
+    public uint levelAssociated;
 }
