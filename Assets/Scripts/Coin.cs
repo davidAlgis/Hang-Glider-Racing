@@ -14,7 +14,7 @@ public class Coin : MonoBehaviour
     {
         if(other.tag == "Player")
         {
-            DataManager.Instance.NbrOfCoin++;
+            GameManager.Instance.NbrOfCoinLevel++;
             m_meshRenderer.enabled = false;
             StartCoroutine(getCoin());
         }

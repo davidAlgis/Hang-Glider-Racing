@@ -1,5 +1,7 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using UnityEditor;
 using UnityEngine;
@@ -64,12 +66,12 @@ public class Movements : MonoBehaviour
 
     private void OnEnable()
     {
+
         if(m_handleByAI == false)
         {
 
             m_shakeBehaviorCamera = transform.Find("Main Camera").GetComponent<ShakeBehavior>();
             m_particleTrails = m_hangGliderGO.transform.Find("ParticleTrails").GetComponent<ParticleSystem>();
-            SoundManager.Instance.playSoundFlight();
             m_name = "You";
         }
 
@@ -99,27 +101,38 @@ public class Movements : MonoBehaviour
 
         if (m_handleByAI)
         {
-            Random.InitState(m_randomSeed);
+            UnityEngine.Random.InitState(m_randomSeed);
             m_forceDescent *= 5.0f;
             StartCoroutine(catchUpPlayer());
             //change the color of the wing and the character
-            m_associatedColor = new Color(Random.Range(0.0f, 1.0f), Random.Range(0.0f, 1.0f), Random.Range(0.0f, 1.0f));
+            m_associatedColor = new Color(UnityEngine.Random.Range(0.0f, 1.0f), UnityEngine.Random.Range(0.0f, 1.0f), UnityEngine.Random.Range(0.0f, 1.0f));
             m_hangGliderGO.transform.Find("Bar").GetComponent<MeshRenderer>().material.color = m_associatedColor;
             m_hangGliderGO.transform.Find("Character/Stickman_heads_sphere.014").GetComponent<SkinnedMeshRenderer>().material.color = m_associatedColor; 
         }
 
         m_rb.velocity = m_forceDescent * (transform.forward * lengthSide.first - transform.up * lengthSide.second);
 
-            
+        //TODO: delete
+        /*if(m_handleByAI == false)
+        {
+
+            StartCoroutine(getPath());
+            sw = new StreamWriter("C:\\Test.txt", true);
+        }*/
+
     }
 
     private void Update()
     {
+        if (GameManager.Instance.LevelIsEnded)
+            return;
+
 
         updateRotationHangGlider();
 
+
         //If the hangGlider reachTheFloor
-        if(m_hangGliderGO.transform.position.y <= 2.0f || m_isLanded)
+        if (m_hangGliderGO.transform.position.y <= GameManager.Instance.HeightFloor || m_isLanded)
         {
             landOnFloor();
             return;
@@ -219,17 +232,17 @@ public class Movements : MonoBehaviour
     {
         Vector3 currentPosHangGlider = m_hangGliderGO.transform.position;
 
-        if (currentPosHangGlider.y <= 2.5f)
-            m_hangGliderGO.transform.position = Vector3.MoveTowards(currentPosHangGlider, new Vector3(currentPosHangGlider.x, 3.0f, currentPosHangGlider.z), 1.0f);
+        if (currentPosHangGlider.y <= GameManager.Instance.HeightFloor+0.5f)
+            m_hangGliderGO.transform.position = Vector3.MoveTowards(currentPosHangGlider, new Vector3(currentPosHangGlider.x, GameManager.Instance.HeightFloor + 1.0f, currentPosHangGlider.z), 1.0f);
 
         if (m_isLanded == false)
         {
+
             myStopAllCoroutine();
+
             StartCoroutine(landOnFloorCoroutine());
         }
         
-        if(m_handleByAI == false)
-            SoundManager.Instance.stopSoundFlight();
 
         m_isLanded = true;
 
@@ -237,8 +250,8 @@ public class Movements : MonoBehaviour
 
     private IEnumerator landOnFloorCoroutine()
     {
-
         StartCoroutine(transitionBetweenVelocity(m_rb.velocity, Vector3.zero, 0.01f));
+
         yield return new WaitForSeconds(0.01f);
         StartCoroutine(transitionBetweenVelocity(m_rb.velocity, transform.forward, 0.5f));
         StartCoroutine(transitionBetweenVelocity(m_rb.velocity, Vector3.zero, 2.5f));
@@ -279,6 +292,7 @@ public class Movements : MonoBehaviour
         forceDirection = m_forceRise * (transform.forward * lengthSide.first + transform.up * lengthSide.second);
         StartCoroutine(transitionBetweenVelocity(m_rb.velocity, forceDirection, 0.5f));
         float height = m_posOriginToDive.y - transform.position.y;
+        GameManager.Instance.highestDive(height);
         StartCoroutine(rise(height));
 
         if(m_forceDescent < 0.1f * m_forceDescentMax)
@@ -492,16 +506,16 @@ public class Movements : MonoBehaviour
         while (m_inTransition)
             yield return new WaitForSeconds(0.1f);
 
-        Random.InitState(m_randomSeed);
-        yield return new WaitForSeconds(Random.Range(0.5f, 3.0f));
+        UnityEngine.Random.InitState(m_randomSeed);
+        yield return new WaitForSeconds(UnityEngine.Random.Range(0.5f, 3.0f));
         releaseToRise();
     }
 
     private IEnumerator waitAndDive()
     {
         m_isWaitingForDiving = true;
-        Random.InitState(m_randomSeed);
-        yield return new WaitForSeconds(Random.Range(2.0f, 4.0f));
+        UnityEngine.Random.InitState(m_randomSeed);
+        yield return new WaitForSeconds(UnityEngine.Random.Range(2.0f, 4.0f));
         holdToDive();
 
         m_isWaitingForDiving = false;

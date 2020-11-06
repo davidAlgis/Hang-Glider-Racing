@@ -6,9 +6,14 @@ using UnityEngine;
 public class Obstacle : MonoBehaviour
 {
     private Material[] m_obstacleMaterials;
+    [SerializeField]
+    private float m_changeForces = 0.1f;
     private bool m_matHasBeenUpdated;
     [SerializeField]
     private float m_angleAddSlope;
+    [SerializeField]
+    private bool m_isMeteor;
+
 
     private void Awake()
     {
@@ -21,23 +26,19 @@ public class Obstacle : MonoBehaviour
 
     private void Update()
     {
-        if(m_matHasBeenUpdated == false)
+        if(m_isMeteor && UIManager.Instance.TutorialPanelGO.activeSelf == false)
         {
-            if (transform.position.z < GameManager.Instance.HangGliderPlayer.transform.position.z)
+            if (Mathf.Abs(GameManager.Instance.HangGliderPlayer.transform.position.z - transform.position.z) < 30.0f)
             {
-                if (m_obstacleMaterials != null)
-                {
-                    foreach (var mat in m_obstacleMaterials)
-                    {
-                        Color color = mat.color;
-                        color.a = 0.1f;
-                        mat.color = color;
-                    }
-                }
-                m_matHasBeenUpdated = true;
+                Rigidbody rb = GetComponent<Rigidbody>();
+                rb.useGravity = true;
+                rb.AddForce(6.0f * transform.forward);
+                rb.AddTorque(transform.forward);
             }
-        }
 
+            if (transform.position.y < GameManager.Instance.HeightFloor - 10.0f)
+                Destroy(gameObject);
+        }
     }
 
 
@@ -47,7 +48,7 @@ public class Obstacle : MonoBehaviour
         if (other.tag == "Player" || other.tag == "Opponent")
         {
             Movements movements = other.transform.parent.GetComponent<Movements>();
-            movements.changeForces(0.1f);
+            movements.changeForces(m_changeForces);
             movements.diveReduce(m_angleAddSlope);
         }
         
@@ -66,21 +67,5 @@ public class Obstacle : MonoBehaviour
         }
     }
 
-    /*private void OnTriggerExit(Collider other)
-    {
-        if (other.tag == "Player")
-        {
-            if (m_obstacleMaterials != null)
-            {
-                foreach (var mat in m_obstacleMaterials)
-                {
-                    Color color = mat.color;
-                    color.a = 1.0f;
-                    mat.color = color;
-                }
-            }
-
-        }
-    }*/
 
 }

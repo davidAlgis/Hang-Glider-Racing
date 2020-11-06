@@ -49,6 +49,8 @@ public class UIManager : MonoBehaviour
         }
     }
 
+    public GameObject TutorialPanelGO { get => m_tutorialPanelGO; set => m_tutorialPanelGO = value; }
+
     public void Awake()
     {
         int nbrOfMeasure = (int)(m_measureFullGauge / m_measureOnGaugeEach);
@@ -77,10 +79,6 @@ public class UIManager : MonoBehaviour
         }
         m_objectivesGO = m_panelEndGO.transform.Find("Objectives").gameObject;
 
-        if(GameManager.Instance.LevelId >= DataManager.Instance.NbrOfLevel - 1)
-        {
-            m_nextLevelButton.interactable = false;
-        }
 
         StartCoroutine(beginCounter());
     }
@@ -88,7 +86,7 @@ public class UIManager : MonoBehaviour
     public void Update()
     {
         m_distanceText.text = string.Format("{0,6:##0.0}", GameManager.Instance.calculateScore()) + " m";
-        m_coinScoreText.text = DataManager.Instance.NbrOfCoin.ToString();
+        m_coinScoreText.text = GameManager.Instance.NbrOfCoinLevel.ToString();
     }
 
     public void debugText(string text)
@@ -98,6 +96,7 @@ public class UIManager : MonoBehaviour
 
     public void plotPanelEndGo()
     {
+
         int nbrOfChild = m_objectivesGO.transform.childCount;
         for (int j = 0; j < nbrOfChild; j++)
         {
@@ -114,6 +113,7 @@ public class UIManager : MonoBehaviour
         }
 
         m_panelEndGO.SetActive(true);
+
         m_distanceText.gameObject.SetActive(false);
         int i = 0;
         foreach (Pair<Movements, float> player in GameManager.Instance.MovementsPlayers)
@@ -196,7 +196,6 @@ public class UIManager : MonoBehaviour
 
         while(Input.touchCount == 0 && Input.GetKeyDown(KeyCode.Space) == false)
         {
-            print("while");
             yield return new WaitForFixedUpdate();
         }
 

@@ -2738,10 +2738,10 @@ MonoBehaviour:
   m_forceDescentMax: 70
   m_diveAngle: 80
   m_forceDive: 15
-  m_forceDiveMax: 100
+  m_forceDiveMax: 70
   m_riseAngle: -80
   m_forceRise: 20
-  m_forceRiseMax: 150
+  m_forceRiseMax: 100
   m_hangGliderGO: {fileID: 5281306132938108713}
   m_handleByAI: 0
   m_randomSeed: 0

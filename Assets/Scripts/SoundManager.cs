@@ -11,9 +11,6 @@ public class SoundManager : MonoBehaviour
     [SerializeField]
     private AudioSource m_soundRise;
     private float m_startVolumeSoundRise;
-    [SerializeField]
-    private AudioSource m_soundFlight;
-    private float m_startVolumeSoundFlight;
     private float m_timeOfEndSoundDive;
 
 
@@ -34,21 +31,9 @@ public class SoundManager : MonoBehaviour
     {
         m_startVolumeSoundDive = m_soundDive.volume;
         m_startVolumeSoundRise = m_soundRise.volume;
-        m_startVolumeSoundFlight = m_soundFlight.volume;
 
     }
 
-    public void playSoundFlight()
-    {
-
-        playFadeIn(m_soundFlight, m_startVolumeSoundFlight);
-    }
-
-    public void stopSoundFlight()
-    {
-
-        stopFadeOut(m_soundFlight, m_startVolumeSoundFlight,3.0f);
-    }
 
     public void playSoundDive()
     {

@@ -43,3 +43,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 37f047c7492f31d41b36afc546d906e0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  objectivesAreAchieve:
+  - levelAssociated: 0
+    objective1isAchieve: 0
+    objective2isAchieve: 0
+    objective3isAchieve: 0
+  - levelAssociated: 1
+    objective1isAchieve: 0
+    objective2isAchieve: 0
+    objective3isAchieve: 0
+  - levelAssociated: 2
+    objective1isAchieve: 0
+    objective2isAchieve: 0
+    objective3isAchieve: 0
+  - levelAssociated: 3
+    objective1isAchieve: 0
+    objective2isAchieve: 0
+    objective3isAchieve: 0
+  - levelAssociated: 4
+    objective1isAchieve: 0
+    objective2isAchieve: 0
+    objective3isAchieve: 0

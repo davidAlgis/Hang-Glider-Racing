@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using UnityEngine.SceneManagement;
 using UnityEngine;
-using UnityEngine.Events;
 
 public class GameManager : MonoBehaviour
 {
@@ -13,9 +12,14 @@ public class GameManager : MonoBehaviour
     private GameObject m_hangGliderPlayer;
     [SerializeField]
     private GameObject m_mainCameraGO;
-    [SerializeField]
-    private GameObject m_playersGO;
+    //[SerializeField]
+    public GameObject m_playersGO;
     private List<Pair<Movements,float>> m_movementsPlayers = new List<Pair<Movements, float>>();
+    [SerializeField]
+    private float m_heightFloor = 10.0f;
+    [SerializeField]
+    private float m_lengthTerrain = 650.0f;
+    private bool m_levelIsEnded;
     
     #region Objectives_variables
     [SerializeField]
@@ -44,6 +48,8 @@ public class GameManager : MonoBehaviour
     public int NbrOfCoinLevel { get => m_nbrOfCoinLevel; set => m_nbrOfCoinLevel = value; }
     public Objective[] Objective { get => m_objective; set => m_objective = value; }
     public int LevelId { get => m_levelId; }
+    public float HeightFloor { get => m_heightFloor; set => m_heightFloor = value; }
+    public bool LevelIsEnded { get => m_levelIsEnded; set => m_levelIsEnded = value; }
 
     public void Awake()
     {
@@ -68,6 +74,15 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    public void Update()
+    {
+        //make sure of the position coherency
+        if (m_hangGliderPlayer.transform.position.y < m_heightFloor - 10.0f && m_levelIsEnded == false)
+            endLevel();
+
+
+    }
+
     public float calculateScore()
     {
         return m_hangGliderPlayer.transform.position.z;
@@ -75,12 +90,18 @@ public class GameManager : MonoBehaviour
 
     public void endLevel()
     {
+       
+        m_levelIsEnded = true;
+
+        Rigidbody rb = HangGliderPlayer.GetComponentInParent<Rigidbody>();
+        rb.constraints = RigidbodyConstraints.FreezeAll;
         definedScore();
         sortPlayerByScore();
-
         //The check has to be after the 2 lasts line, because they updates scores.
         checkIfObjectivesAreCompleted();
+        UIManager.Instance.debugText("check if objectives are completes");
         UIManager.Instance.plotPanelEndGo();
+        UIManager.Instance.debugText("plot panel end go");
     }
 
     public void calculateScoreForLandedHangGlider(GameObject go)
@@ -134,7 +155,10 @@ public class GameManager : MonoBehaviour
             {
                 //value depending of the length of the terrain
                 if(mov.first.IsLanded == false)
-                    mov.second = score + Random.Range(10.0f, 500.0f);
+                {
+                    mov.second = Mathf.Abs(score + Random.Range(-60.0f, Mathf.Max(m_lengthTerrain - score, 0.0f) - 50.0f));
+
+                }
                 
             }
         }
@@ -148,13 +172,14 @@ public class GameManager : MonoBehaviour
     public void goToMainMenu()
     {
 
-        SceneManager.LoadScene(1);
+        SceneManager.LoadScene(5);
     }
 
     public void goToNextLevel()
     {
         //add a check here
-        SceneManager.LoadScene(m_levelId++);
+        int nextLevelId = m_levelId + 1;
+        SceneManager.LoadScene(nextLevelId);
     }
 
     public void launchPlayers()
@@ -178,17 +203,23 @@ public class GameManager : MonoBehaviour
 
     public void checkIfObjectivesAreCompleted()
     {
-        foreach (Objective objective in m_objective)
+        
+        if(m_objective != null)
         {
-            if (objective.isAchieve == false)
+            foreach (Objective objective in m_objective)
             {
-                if (objective.condition.Invoke())
+                if (objective.isAchieve == false)
                 {
+                    /*if (objective.condition.Invoke())
+                    {
+                        objective.isAchieve = true;
+                    }*/
                     objective.isAchieve = true;
+                    DataManager.Instance.NbrOfStar++;
                 }
-                DataManager.Instance.NbrOfStar++;
             }
         }
+
 
         List<Objectives3Achieve> currentObjectives = DataManager.Instance.ObjectivesAreAchieve;
         foreach (var objectives3Achieve in currentObjectives)
@@ -196,8 +227,8 @@ public class GameManager : MonoBehaviour
             if (objectives3Achieve.levelAssociated == m_levelId)
             {
                 objectives3Achieve.objective1isAchieve = m_objective[0].isAchieve;
-                objectives3Achieve.objective1isAchieve = m_objective[1].isAchieve;
-                objectives3Achieve.objective1isAchieve = m_objective[2].isAchieve;
+                objectives3Achieve.objective2isAchieve = m_objective[1].isAchieve;
+                objectives3Achieve.objective3isAchieve = m_objective[2].isAchieve;
                 break;
             }
         }

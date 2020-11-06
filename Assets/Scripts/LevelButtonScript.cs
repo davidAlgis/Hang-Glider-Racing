@@ -11,6 +11,8 @@ public class LevelButtonScript : MonoBehaviour
     private bool m_isLock = false;
     [SerializeField]
     private int m_indexLevelAssociated = 1;
+    [SerializeField]
+    private GameObject m_loadingGO;
     private Button m_levelButton;
     private GameObject m_levelText;
     private Image m_star1;
@@ -69,6 +71,7 @@ public class LevelButtonScript : MonoBehaviour
 
     private void loadLevel(int index)
     {
+        m_loadingGO.SetActive(true);
         SceneManager.LoadScene(index);
     }
 

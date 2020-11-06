@@ -43,15 +43,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f080ae4db2c2b8c4c95adaca58d5cbb8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  m_levelId: 0
   m_hangGliderPlayer: {fileID: 0}
-  m_movementsPlayers:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
+  m_mainCameraGO: {fileID: 0}
+  m_playersGO: {fileID: 0}
+  m_heightFloor: 10
+  m_lengthTerrain: 0
+  m_objective:
+  - associatedText: Collect more than 10 coins
+    isAchieve: 0
+  - associatedText: Take a dive from a height greater than 30 meters
+    isAchieve: 0
+  - associatedText: Ranked is greater than 5
+    isAchieve: 0
